@@ -820,7 +820,7 @@ pg_decode_begin_txn_v1(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	}
 
 	if (data->include_timestamp)
-		appendStringInfo(ctx->out, "%s\"timestamp\":%s\"%s\",%s", data->ht, data->sp, timestamptz_to_str(txn->commit_time), data->nl);
+		appendStringInfo(ctx->out, "%s\"timestamp\":%s\"%s\",%s", data->ht, data->sp, timestamptz_to_str(txn->xact_time.commit_time), data->nl);
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -847,7 +847,7 @@ pg_decode_begin_txn_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 	if (data->include_xids)
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 	if (data->include_timestamp)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -877,7 +877,7 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	JsonDecodingData *data = ctx->output_plugin_private;
 
 #if PG_VERSION_NUM >= 100000
-	OutputPluginUpdateProgress(ctx);
+	OutputPluginUpdateProgress(ctx, false);
 #endif
 
 	elog(DEBUG2, "my change counter: " UINT64_FORMAT " ; # of changes: " UINT64_FORMAT " ; # of changes in memory: " UINT64_FORMAT, data->nr_changes, txn->nentries, txn->nentries_mem);
@@ -925,7 +925,7 @@ pg_decode_commit_txn_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	if (data->include_xids)
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 	if (data->include_timestamp)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -2208,7 +2208,7 @@ pg_decode_write_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn, Relat
 		appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 
 	if (data->include_timestamp)
-		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+		appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
 
 #if PG_VERSION_NUM >= 90500
 	if (data->include_origin)
@@ -2520,7 +2520,7 @@ pg_decode_message_v2(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 	if (data->include_timestamp)
 	{
 		if (transactional)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
 		else
 			appendStringInfoString(ctx->out, ",\"timestamp\":null");
 	}
@@ -2638,7 +2638,7 @@ static void pg_decode_truncate_v1(LogicalDecodingContext *ctx,
 		appendStringInfo(ctx->out, "%s%s%s\"xid\":%s%u,%s", data->ht, data->ht, data->ht, data->sp, txn->xid, data->nl);
 
 	if (data->include_timestamp)
-		appendStringInfo(ctx->out, "%s%s%s\"timestamp\":%s\"%s\",%s", data->ht, data->ht, data->ht, data->sp, timestamptz_to_str(txn->commit_time), data->nl);
+		appendStringInfo(ctx->out, "%s%s%s\"timestamp\":%s\"%s\",%s", data->ht, data->ht, data->ht, data->sp, timestamptz_to_str(txn->xact_time.commit_time), data->nl);
 
 	if (data->include_origin)
 		appendStringInfo(ctx->out, "%s%s%s\"origin\":%s%u,%s", data->ht, data->ht, data->ht, data->sp, txn->origin_id, data->nl);
@@ -2723,7 +2723,7 @@ static void pg_decode_truncate_v2(LogicalDecodingContext *ctx,
 			appendStringInfo(ctx->out, ",\"xid\":%u", txn->xid);
 
 		if (data->include_timestamp)
-			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->commit_time));
+			appendStringInfo(ctx->out, ",\"timestamp\":\"%s\"", timestamptz_to_str(txn->xact_time.commit_time));
 
 		if (data->include_origin)
 			appendStringInfo(ctx->out, ",\"origin\":%u", txn->origin_id);
